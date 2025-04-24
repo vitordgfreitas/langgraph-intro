@@ -105,7 +105,7 @@ async def get_stream(thread_id: str, message: str):
                     },
                     "stream_mode": "messages-tuple"
                 },
-                timeout=60.0
+                timeout=100.0 # increased timeout to allow Render spin up time
             ) as stream_response:
                 async for line in stream_response.aiter_lines():
                     if line:
