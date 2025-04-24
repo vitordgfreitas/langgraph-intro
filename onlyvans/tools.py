@@ -87,7 +87,7 @@ def generate_visualization(
     plotly_code: str,
     tool_call_id: Annotated[str, InjectedToolCallId]
     ) -> str:
-    '''Generate a visualization using Python, SQL, and Plotly. 
+    '''Generate a visualization using Python, SQL, and Plotly. If the visualizaton is successfully generated, it's automatically rendered for the user on the frontend.
 
     Args:
         name: The name of the visualization. Should be a short name with underscores and no spaces.
@@ -193,10 +193,3 @@ if 'fig' in locals() or 'fig' in globals():
         # Get the error message
         error_message = str(e)
         return f"Error executing visualization code: {error_message}"
-
-
-
-# sql="SELECT c.id, c.first_name, c.last_name, SUM(t.amount_usd) AS total_revenue\nFROM creators c\nJOIN transactions t ON c.id = t.creator_id\nGROUP BY c.id, c.first_name, c.last_name\nORDER BY total_revenue DESC\nLIMIT 5;"
-# code="fig = px.bar(df, x='first_name', y='total_revenue', title='Top 10 Creators by Revenue')\nfig.update_layout(xaxis_title='Creator', yaxis_title='Total Revenue ($)')"
-
-# generate_visualization(name="test", sql_query=sql, plotly_code=code, tool_call_id="test123")
