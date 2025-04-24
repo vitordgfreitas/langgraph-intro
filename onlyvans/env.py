@@ -11,7 +11,6 @@ REDIS_URI=os.getenv("REDIS_URI", None)
 DATABASE_URI=os.getenv("DATABASE_URI", None)
 
 
-
 required_env_vars = [
     "SUPABASE_URL",
     "OPENAI_API_KEY",

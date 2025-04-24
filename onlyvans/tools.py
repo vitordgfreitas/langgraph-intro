@@ -27,16 +27,19 @@ class ServerSession:
             # Configure SQLAlchemy for session pooling
             _engine = create_engine(
                 env.DATABASE_URI,
-                pool_size=5,               # Maintain a pool of connections
-                max_overflow=5,           # Allow up to 5 connections beyond pool_size
+                pool_size=10,               # Maintain a pool of connections
+                max_overflow=10,           # Allow up to 5 connections beyond pool_size
                 pool_timeout=30,           # Wait up to 30 seconds for a connection
-                pool_recycle=900,         # Recycle connections after 15 minutes
+                pool_recycle=3600,         # Recycle connections after 60 minutes
                 pool_pre_ping=True,        # Verify connections before using them
                 pool_use_lifo=True,          # Use LIFO to reduce number of open connections
                 connect_args={
                     "application_name": "onlyvans_agent",  # Identify your application in pg_stat_activity
-                    "options": "-c statement_timeout=30000 -c client_min_messages=warning",
-                    "prepared_statement_cache_size": 0,  # Disable prepared statement cache
+                    "options": "-c statement_timeout=30000",
+                    "keepalives": 1,
+                    "keepalives_idle": 300,
+                    "keepalives_interval": 60,
+                    "keepalives_count": 5
                 }
             )
             return _engine
