@@ -20,7 +20,8 @@ async def create_thread(user_id: str) -> dict:
                         "user_id": user_id
                     },
                     "if_exists": "do_nothing"
-                }
+                },
+                timeout=120.0 # Added timeout to wait for Render spin up
             )
             response.raise_for_status()
 
@@ -105,7 +106,7 @@ async def get_stream(thread_id: str, message: str):
                     },
                     "stream_mode": "messages-tuple"
                 },
-                timeout=100.0 # increased timeout to allow Render spin up time
+                timeout=60.0
             ) as stream_response:
                 async for line in stream_response.aiter_lines():
                     if line:
