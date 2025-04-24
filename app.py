@@ -58,16 +58,17 @@ def process_line(line: str, current_event: str) -> str:
                 if "type" in message_chunk and message_chunk["type"] == "AIMessageChunk":
                     return message_chunk['content']
                         
-                # You can handle other event types here
                 if "tool_calls" in message_chunk:
                     if message_chunk["tool_calls"] and message_chunk["tool_calls"][0]["name"]:
                         tool_name = message_chunk["tool_calls"][0]["name"]
                         tool_args = message_chunk["tool_calls"][0]["args"]
 
                         tool_call_str = f"\n\n[ TOOL CALL: {tool_name} ]"
-                        for name, value in tool_args.items():
-                            tool_call_str += f"\n<{name}>: \n{value}\n\n"
+                        for arg, value in tool_args.items():
+                            tool_call_str += f"\n<{arg}>: \n{value}\n\n"
                         return tool_call_str
+                
+                # You can handle other event types here
                 
             elif current_event == "metadata":
                 return
