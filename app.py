@@ -46,7 +46,7 @@ async def get_thread_state(thread_id: str) -> dict:
         raise
 
 
-def process_line(line: str, current_event: str) -> str:
+def process_line(line: str, current_event: str, seen_tool_call_ids: set) -> str:
     """Process a single data line from the streaming response."""
     try:
         # Process data lines
@@ -61,13 +61,18 @@ def process_line(line: str, current_event: str) -> str:
                         
                 if "tool_calls" in message_chunk:
                     if message_chunk["tool_calls"] and message_chunk["tool_calls"][0]["name"]:
-                        tool_name = message_chunk["tool_calls"][0]["name"]
-                        tool_args = message_chunk["tool_calls"][0]["args"]
-
-                        tool_call_str = f"\n\n[ TOOL CALL: {tool_name} ]"
-                        for arg, value in tool_args.items():
-                            tool_call_str += f"\n<{arg}>: \n{value}\n\n"
-                        return tool_call_str
+                        output = ""
+                        for call in message_chunk["tool_calls"]:
+                            call_id = call.get("id")
+                            if call_id and call_id not in seen_tool_call_ids:
+                                seen_tool_call_ids.add(call_id)
+                                tool_name = call.get("name", "unknown_tool")
+                                tool_args = call.get("args", {})
+                                tool_call_str = f"\n\n[ TOOL CALL: {tool_name} ]"
+                                for arg, value in tool_args.items():
+                                    tool_call_str += f"\n<{arg}>: \n{value}\n\n"
+                                output += tool_call_str
+                        return output or None
                 
                 # You can handle other event types here
                 
@@ -79,12 +84,13 @@ def process_line(line: str, current_event: str) -> str:
         raise
 
 
-async def get_stream(thread_id: str, message: str):
+async def get_stream(thread_id: str, message: str, seen_tool_call_ids = set()):
     """Send a message to the thread and process the streaming response.
 
     Args:
         thread_id: The thread ID to send the message to
         message: The message content
+        seen_tool_call_ids: A set of tool call IDs that have already been seen
 
     Returns:
         str: The complete response from the assistant
@@ -116,7 +122,7 @@ async def get_stream(thread_id: str, message: str):
 
                         # Process data lines
                         else:
-                            message_chunk = process_line(line, current_event)
+                            message_chunk = process_line(line, current_event, seen_tool_call_ids)
                             if message_chunk:
                                 full_content += message_chunk
                                 print(message_chunk, end="", flush=True)
@@ -134,6 +140,9 @@ async def main():
         thread_id = response["thread_id"]
 
         current_chart = None
+        # tracking previous calls is necessary: the full message history is returned on every graph invocation
+        current_tools = set() 
+
         # Stream responses
         while True:
             user_input = input("User: ")
@@ -144,15 +153,15 @@ async def main():
 
             print(f"---- Assistant ---- \n")
             # Get the response using our simplified get_stream function
-            result = await get_stream(thread_id, user_input)
+            result = await get_stream(thread_id, user_input, current_tools)
 
             # check state after run
             thread_state = await get_thread_state(thread_id)
 
             if "chart_json" in thread_state["values"]:
                 chart_json = thread_state["values"]["chart_json"]
+                # render any new charts generated
                 if chart_json and chart_json != current_chart:
-                    # render any charts generated
                     import plotly.io as pio
                     fig = pio.from_json(chart_json)
                     fig.show()
