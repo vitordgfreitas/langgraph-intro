@@ -36,9 +36,6 @@ class ServerSession:
                 connect_args={
                     "application_name": "onlyvans_agent",  # Identify your application in pg_stat_activity
                     "options": "-c statement_timeout=30000 -c client_min_messages=warning",
-                    "server_settings": {
-                        "search_path": "public"
-                    }
                 }
             )
         return _engine
