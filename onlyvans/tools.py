@@ -32,12 +32,15 @@ class ServerSession:
                 pool_timeout=30,           # Wait up to 30 seconds for a connection
                 pool_recycle=900,         # Recycle connections after 15 minutes
                 pool_pre_ping=True,        # Verify connections before using them
+                pool_use_lifo=True,          # Use LIFO to reduce number of open connections
                 connect_args={
                     "application_name": "onlyvans_agent",  # Identify your application in pg_stat_activity
                     "options": "-c statement_timeout=30000 -c client_min_messages=warning",
+                    "prepared_statement_cache_size": 0,  # Disable prepared statement cache
                 }
             )
-        return _engine
+            return _engine
+        return self.engine
 
 
 # Create a global instance of the ServerSession
@@ -56,7 +59,9 @@ def query_db(query: str) -> str:
     """
     try:
         # Use the global engine in the server session to connect to Supabase
-        with session.engine.connect() as conn:
+        with session.engine.connect().execution_options(
+            isolation_level="READ COMMITTED"
+        ) as conn:
             result = conn.execute(text(query))
 
             columns = list(result.keys())
@@ -66,6 +71,7 @@ def query_db(query: str) -> str:
             # Store the DataFrame in the server session
             session.df = df
 
+            conn.close()  # Explicitly close the connection
         return df.to_markdown(index=False)
     except Exception as e:
         return f"Error executing query: {str(e)}"
