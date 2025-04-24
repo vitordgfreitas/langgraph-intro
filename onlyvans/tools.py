@@ -9,7 +9,6 @@ from langgraph.types import Command
 from langchain_core.tools.base import InjectedToolCallId
 from typing import Annotated
 from langchain_core.messages import ToolMessage
-from sqlalchemy.pool import NullPool
 
 
 class ServerSession:
@@ -29,9 +28,9 @@ class ServerSession:
             _engine = create_engine(
                 env.DATABASE_URI,
                 pool_size=5,               # Maintain a pool of connections
-                max_overflow=10,           # Allow up to 10 connections beyond pool_size
+                max_overflow=5,           # Allow up to 5 connections beyond pool_size
                 pool_timeout=30,           # Wait up to 30 seconds for a connection
-                pool_recycle=1800,         # Recycle connections after 30 minutes
+                pool_recycle=900,         # Recycle connections after 15 minutes
                 pool_pre_ping=True,        # Verify connections before using them
                 connect_args={
                     "application_name": "onlyvans_agent",  # Identify your application in pg_stat_activity
