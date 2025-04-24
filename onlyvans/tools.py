@@ -26,7 +26,7 @@ class ServerSession:
         if self.engine is None:
             # Configure SQLAlchemy for session pooling
             _engine = create_engine(
-                env.DATABASE_URI,
+                env.DATABASE_POOL_URI,
                 pool_size=5,               # Maintain a pool of connections
                 max_overflow=5,           # Allow up to 5 connections beyond pool_size
                 pool_timeout=30,           # Wait up to 30 seconds for a connection
