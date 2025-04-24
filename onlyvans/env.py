@@ -9,7 +9,6 @@ OPENAI_API_KEY=os.getenv("OPENAI_API_KEY", None)
 LANGSMITH_API_KEY=os.getenv("LANGSMITH_API_KEY", None)
 REDIS_URI=os.getenv("REDIS_URI", None)
 DATABASE_URI=os.getenv("DATABASE_URI", None)
-DATABASE_POOL_URI=os.getenv("DATABASE_POOL_URI", None)
 
 
 
@@ -19,7 +18,6 @@ required_env_vars = [
     "LANGSMITH_API_KEY",
     "REDIS_URI",
     "DATABASE_URI",
-    "DATABASE_POOL_URI",
 ]
 
 for var in required_env_vars:
