@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Annotated, List, Generator
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessageChunk
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
@@ -124,16 +124,25 @@ class Agent:
             stream_mode="messages",
             **kwargs
         ):
-            if isinstance(message_chunk, AIMessage):
-                if message_chunk.tool_calls:
-                    tool_name = message_chunk.tool_calls[0].get("name", "")
-                    args = message_chunk.tool_calls[0].get("args", {})
+            if isinstance(message_chunk, AIMessageChunk):
+                if message_chunk.response_metadata:
+                    finish_reason = message_chunk.response_metadata.get("finish_reason", "")
+                    if finish_reason == "tool_calls":
+                        yield "\n\n"
+
+                if message_chunk.tool_call_chunks:
+                    tool_chunk = message_chunk.tool_call_chunks[0]
+
+                    tool_name = tool_chunk.get("name", "")
+                    args = tool_chunk.get("args", "")
+
                     
-                    if tool_name != "":
-                        tool_call_str = f"\n\n[ TOOL CALL: {tool_name} ]"
-                        for name, value in args.items():
-                            tool_call_str += f"\n<{name}>: \n{value}\n\n"
-                        yield tool_call_str
+                    if tool_name:
+                        tool_call_str = f"\n\n< TOOL CALL: {tool_name} >\n\n"
+
+                    if args:
+                        tool_call_str = args
+                    yield tool_call_str
                 else:
                     yield message_chunk.content
                 continue
