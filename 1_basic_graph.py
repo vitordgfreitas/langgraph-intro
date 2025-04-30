@@ -1,5 +1,4 @@
 from langchain_openai import ChatOpenAI
-import random
 
 
 llm = ChatOpenAI(model="gpt-4.1-mini-2025-04-14")
