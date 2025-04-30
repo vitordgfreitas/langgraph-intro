@@ -1,6 +1,6 @@
 # LangGraph Intro
 
-This project gives a brief introduction to LangGraph by using it to build a simple but powerful data analytics AI agent that can query your database, perform analyses, and generate visualizations. It's meant to be a starting point for building your own LangGraph applications. Build off of this example to create your own AI agents, add tools and logic, and expand on the capabilities covered here.
+This project gives a brief introduction to LangGraph by using it to build a simple but powerful data analytics AI agent that can query your database, perform analyses, and generate visualizations. It's meant to be a starting point for building your own LangGraph applications. Add to this example to create your own full-deployed, powerful AI agents. Add tools and logic, and expand on the capabilities covered here.
 
 What we'll cover:
 
