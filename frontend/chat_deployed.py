@@ -2,7 +2,8 @@ import os
 import json
 import uuid
 import httpx
-from typing import Tuple
+from dotenv import load_dotenv
+load_dotenv()
 
 
 LANGGRAPH_URL = os.getenv("LANGGRAPH_URL")
