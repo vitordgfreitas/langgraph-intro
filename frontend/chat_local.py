@@ -17,10 +17,6 @@ def main():
             temperature=0.1
         )
 
-        current_chart = None
-        # tracking previous calls is necessary: the full message history is returned on every graph invocation
-        current_tools = set() 
-
         # Stream responses
         while True:
             user_input = input("User: ")
@@ -36,6 +32,16 @@ def main():
             for message_chunk in result:
                 if message_chunk:
                     print(message_chunk, end="", flush=True)
+
+            thread_state = agent.runnable.get_state(config=config)
+
+            if "chart_json" in thread_state.values:
+                chart_json = thread_state.values["chart_json"]
+                if chart_json:
+                    import plotly.io as pio
+                    fig = pio.from_json(chart_json)
+                    fig.show()
+            print("")
 
     except Exception as e:
         print(f"Error: {type(e).__name__}: {str(e)}")
