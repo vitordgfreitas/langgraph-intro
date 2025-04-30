@@ -5,7 +5,7 @@ import httpx
 from typing import Tuple
 
 
-langgraph_url = os.getenv("LANGGRAPH_URL", "http://localhost:8123")
+LANGGRAPH_URL = os.getenv("LANGGRAPH_URL")
 
 
 async def create_thread(user_id: str) -> dict:
@@ -13,7 +13,7 @@ async def create_thread(user_id: str) -> dict:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                url=f"{langgraph_url}/threads",
+                url=f"{LANGGRAPH_URL}/threads",
                 json={
                     "thread_id": str(uuid.uuid4()),
                     "metadata": {
@@ -36,7 +36,7 @@ async def get_thread_state(thread_id: str) -> dict:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                url=f"{langgraph_url}/threads/{thread_id}/state"
+                url=f"{LANGGRAPH_URL}/threads/{thread_id}/state"
             )
             response.raise_for_status()
 
@@ -46,7 +46,7 @@ async def get_thread_state(thread_id: str) -> dict:
         raise
 
 
-def process_line(line: str, current_event: str, seen_tool_call_ids: set) -> str:
+def process_line(line: str, current_event: str) -> str:
     """Process a single data line from the streaming response."""
     try:
         # Process data lines
@@ -57,22 +57,25 @@ def process_line(line: str, current_event: str, seen_tool_call_ids: set) -> str:
                 message_chunk, metadata = json.loads(data_content)
             
                 if "type" in message_chunk and message_chunk["type"] == "AIMessageChunk":
-                    return message_chunk['content']
+                    if message_chunk["response_metadata"]:
+                        finish_reason = message_chunk["response_metadata"].get("finish_reason", "")
+                        if finish_reason == "tool_calls":
+                            return "\n\n"
                         
-                if "tool_calls" in message_chunk:
-                    if message_chunk["tool_calls"] and message_chunk["tool_calls"][0]["name"]:
-                        output = ""
-                        for call in message_chunk["tool_calls"]:
-                            call_id = call.get("id")
-                            if call_id and call_id not in seen_tool_call_ids:
-                                seen_tool_call_ids.add(call_id)
-                                tool_name = call.get("name", "unknown_tool")
-                                tool_args = call.get("args", {})
-                                tool_call_str = f"\n\n[ TOOL CALL: {tool_name} ]"
-                                for arg, value in tool_args.items():
-                                    tool_call_str += f"\n<{arg}>: \n{value}\n\n"
-                                output += tool_call_str
-                        return output or None
+                    if message_chunk["tool_call_chunks"]:
+                        tool_chunk = message_chunk["tool_call_chunks"][0]
+
+                        tool_name = tool_chunk.get("name", "")
+                        args = tool_chunk.get("args", "")
+                        
+                        if tool_name:
+                            tool_call_str = f"\n\n< TOOL CALL: {tool_name} >\n\n"
+
+                        if args:
+                            tool_call_str = args
+                        return tool_call_str
+                    else:
+                        return message_chunk["content"]
                 
                 # You can handle other event types here
                 
@@ -84,7 +87,7 @@ def process_line(line: str, current_event: str, seen_tool_call_ids: set) -> str:
         raise
 
 
-async def get_stream(thread_id: str, message: str, seen_tool_call_ids = set()):
+async def get_stream(thread_id: str, message: str):
     """Send a message to the thread and process the streaming response.
 
     Args:
@@ -102,7 +105,7 @@ async def get_stream(thread_id: str, message: str, seen_tool_call_ids = set()):
         async with httpx.AsyncClient() as client:
             async with client.stream(
                 "POST",
-                url=f"{langgraph_url}/threads/{thread_id}/runs/stream",
+                url=f"{LANGGRAPH_URL}/threads/{thread_id}/runs/stream",
                 json={
                     "assistant_id": "scout",
                     "input": {
@@ -122,7 +125,7 @@ async def get_stream(thread_id: str, message: str, seen_tool_call_ids = set()):
 
                         # Process data lines
                         else:
-                            message_chunk = process_line(line, current_event, seen_tool_call_ids)
+                            message_chunk = process_line(line, current_event)
                             if message_chunk:
                                 full_content += message_chunk
                                 print(message_chunk, end="", flush=True)
@@ -140,8 +143,6 @@ async def main():
         thread_id = response["thread_id"]
 
         current_chart = None
-        # tracking previous calls is necessary: the full message history is returned on every graph invocation
-        current_tools = set() 
 
         # Stream responses
         while True:
@@ -153,7 +154,7 @@ async def main():
 
             print(f"---- Assistant ---- \n")
             # Get the response using our simplified get_stream function
-            result = await get_stream(thread_id, user_input, current_tools)
+            result = await get_stream(thread_id, user_input)
 
             # check state after run
             thread_state = await get_thread_state(thread_id)
@@ -179,8 +180,6 @@ if __name__ == "__main__":
     import nest_asyncio
     nest_asyncio.apply()
 
-    print("\n###\n\nGreetings!\n\nTry asking Scout a question about the company data.\n\n###\n\n")
+    print(f"\nGreetings!\n\nTry asking Scout to show you a preview of the data.\n\n{40*"="}\n\n")
 
     asyncio.run(main())
-
-
